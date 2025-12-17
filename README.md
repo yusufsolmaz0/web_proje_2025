@@ -1,3 +1,3 @@
-# web_proje_2025
-sa
-deneme
+# Fitness Center Yönetim Sistemi
+
+ASP.NET Core MVC tabanlı Web Programlama dersi proje ödevi.
