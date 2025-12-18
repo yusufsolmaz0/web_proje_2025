@@ -1,0 +1,93 @@
+﻿@model FitnessCenterManagement.Models.Appointment
+
+@{
+    ViewData["Title"] = "Create Appointment";
+}
+
+<h1>Create Appointment</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="TrainerId" class="form-label"></label>
+                <select asp-for="TrainerId" class="form-select" asp-items="ViewBag.TrainerId"></select>
+                <span asp-validation-for="TrainerId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ServiceId" class="form-label"></label>
+                <select asp-for="ServiceId" class="form-select" asp-items="ViewBag.ServiceId"></select>
+                <span asp-validation-for="ServiceId" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="StartTime" class="form-label"></label>
+                <input asp-for="StartTime" class="form-control" type="datetime-local" />
+                <span asp-validation-for="StartTime" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-action="Index" class="btn btn-secondary">Back</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+        <script>
+            async function loadAvailableTrainers() {
+                const startTimeInput = document.getElementById("StartTime");
+                const trainerSelect = document.getElementById("TrainerId");
+
+                if (!startTimeInput || !trainerSelect) return;
+
+                const dateValue = startTimeInput.value; // "2025-12-20T13:00"
+                if (!dateValue) return;
+
+                const url = `/api/availabilityapi/available-trainers?date=${encodeURIComponent(dateValue)}`;
+
+                const res = await fetch(url);
+                if (!res.ok) return;
+
+                const data = await res.json();
+
+                // Select'i temizle
+                trainerSelect.innerHTML = "";
+
+                // Eğer hiç trainer yoksa
+                if (!data || data.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.text = "Bu saatte müsait trainer yok";
+                    trainerSelect.appendChild(opt);
+                    return;
+                }
+
+                // Yeni optionları ekle
+                for (const t of data) {
+                    const opt = document.createElement("option");
+                    opt.value = t.id;
+                    opt.text = `${t.fullName} (${t.specialty})`;
+                    trainerSelect.appendChild(opt);
+                }
+            }
+
+            // Tarih değişince API çağır
+            document.addEventListener("DOMContentLoaded", function () {
+                const startTimeInput = document.getElementById("StartTime");
+                if (startTimeInput) {
+                    startTimeInput.addEventListener("change", loadAvailableTrainers);
+                }
+
+                // Sayfa açılınca da bir kere dene
+                loadAvailableTrainers();
+            });
+        </script>
+
+    }
+}
