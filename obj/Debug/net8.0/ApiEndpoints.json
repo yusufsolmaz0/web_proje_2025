@@ -1,0 +1,59 @@
+[
+  {
+    "ContainingType": "FitnessCenterManagement.Controllers.Api.AvailabilityApiController",
+    "Method": "GetAvailableTimes",
+    "RelativePath": "api/AvailabilityApi/available-times",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "trainerId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "serviceId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "date",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FitnessCenterManagement.Controllers.Api.AvailabilityApiController",
+    "Method": "GetAvailableTrainersForService",
+    "RelativePath": "api/AvailabilityApi/available-trainers-for-service",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "serviceId",
+        "Type": "System.Int32",
+        "IsRequired": false
+      },
+      {
+        "Name": "date",
+        "Type": "System.DateTime",
+        "IsRequired": false
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "FitnessCenterManagement.Controllers.Api.TrainersApiController",
+    "Method": "GetAll",
+    "RelativePath": "api/TrainersApi",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  }
+]
