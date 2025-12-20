@@ -1,19 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using FitnessCenterManagement.Data;
 using FitnessCenterManagement.Models;
 using Microsoft.AspNetCore.Authorization;
 
-
 namespace FitnessCenterManagement.Controllers
 {
-    [Authorize(Roles = "Admin")]
-
+    [Authorize]
     public class TrainersController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -23,139 +18,183 @@ namespace FitnessCenterManagement.Controllers
             _context = context;
         }
 
-        // GET: Trainers
+        // GET: Trainers (Herkes görür)
         public async Task<IActionResult> Index()
         {
             return View(await _context.Trainers.ToListAsync());
         }
 
-        // GET: Trainers/Details/5
+        // GET: Trainers/Details/5 (Herkes görür)
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
             var trainer = await _context.Trainers
+                .Include(t => t.Services)
                 .FirstOrDefaultAsync(m => m.Id == id);
-            if (trainer == null)
-            {
-                return NotFound();
-            }
+
+            if (trainer == null) return NotFound();
 
             return View(trainer);
         }
 
-        // GET: Trainers/Create
-        public IActionResult Create()
+        // GET: Trainers/Create (Admin)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create()
         {
-            return View();
+            var services = await _context.Services.ToListAsync();
+
+            var vm = new TrainerEditVM
+            {
+                AllServices = services.Select(s => new ServiceCheckboxVM
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    IsSelected = false
+                }).ToList()
+            };
+
+            return View(vm);
         }
 
-        // POST: Trainers/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: Trainers/Create (Admin)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FullName,Specialty")] Trainer trainer)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Create(TrainerEditVM vm)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                _context.Add(trainer);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                // checkboxları tekrar doldur
+                var services = await _context.Services.ToListAsync();
+                var selected = vm.SelectedServiceIds.ToHashSet();
+
+                vm.AllServices = services.Select(s => new ServiceCheckboxVM
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    IsSelected = selected.Contains(s.Id)
+                }).ToList();
+
+                return View(vm);
             }
-            return View(trainer);
+
+            var selectedServices = await _context.Services
+                .Where(s => vm.SelectedServiceIds.Contains(s.Id))
+                .ToListAsync();
+
+            var trainer = new Trainer
+            {
+                FullName = vm.FullName,
+                Services = selectedServices
+            };
+
+            _context.Trainers.Add(trainer);
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
         }
 
-        // GET: Trainers/Edit/5
+        // GET: Trainers/Edit/5 (Admin)
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null)
-            {
-                return NotFound();
-            }
+            if (id == null) return NotFound();
 
-            var trainer = await _context.Trainers.FindAsync(id);
-            if (trainer == null)
+            var trainer = await _context.Trainers
+                .Include(t => t.Services)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (trainer == null) return NotFound();
+
+            var services = await _context.Services.ToListAsync();
+            var selectedIds = trainer.Services.Select(s => s.Id).ToHashSet();
+
+            var vm = new TrainerEditVM
             {
-                return NotFound();
-            }
-            return View(trainer);
+                Id = trainer.Id,
+                FullName = trainer.FullName,
+                SelectedServiceIds = selectedIds.ToList(),
+                AllServices = services.Select(s => new ServiceCheckboxVM
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    IsSelected = selectedIds.Contains(s.Id)
+                }).ToList()
+            };
+
+            return View(vm);
         }
 
-        // POST: Trainers/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
+        // POST: Trainers/Edit/5 (Admin)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,FullName,Specialty")] Trainer trainer)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Edit(int id, TrainerEditVM vm)
         {
-            if (id != trainer.Id)
-            {
-                return NotFound();
-            }
+            if (id != vm.Id) return NotFound();
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
-                {
-                    _context.Update(trainer);
-                    await _context.SaveChangesAsync();
-                }
-                catch (DbUpdateConcurrencyException)
-                {
-                    if (!TrainerExists(trainer.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
-                }
-                return RedirectToAction(nameof(Index));
-            }
-            return View(trainer);
-        }
+                var services = await _context.Services.ToListAsync();
+                var selected = vm.SelectedServiceIds.ToHashSet();
 
-        // GET: Trainers/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
+                vm.AllServices = services.Select(s => new ServiceCheckboxVM
+                {
+                    Id = s.Id,
+                    Name = s.Name,
+                    IsSelected = selected.Contains(s.Id)
+                }).ToList();
+
+                return View(vm);
             }
 
             var trainer = await _context.Trainers
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (trainer == null)
-            {
-                return NotFound();
-            }
+                .Include(t => t.Services)
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (trainer == null) return NotFound();
+
+            trainer.FullName = vm.FullName;
+
+            trainer.Services.Clear();
+            var selectedServices = await _context.Services
+                .Where(s => vm.SelectedServiceIds.Contains(s.Id))
+                .ToListAsync();
+
+            foreach (var s in selectedServices)
+                trainer.Services.Add(s);
+
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // GET: Trainers/Delete/5 (Admin)
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var trainer = await _context.Trainers.FirstOrDefaultAsync(m => m.Id == id);
+            if (trainer == null) return NotFound();
 
             return View(trainer);
         }
 
-        // POST: Trainers/Delete/5
+        // POST: Trainers/Delete/5 (Admin)
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             var trainer = await _context.Trainers.FindAsync(id);
             if (trainer != null)
             {
                 _context.Trainers.Remove(trainer);
+                await _context.SaveChangesAsync();
             }
-
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
-        }
-
-        private bool TrainerExists(int id)
-        {
-            return _context.Trainers.Any(e => e.Id == id);
         }
     }
 }

@@ -1,5 +1,8 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +10,10 @@ using FitnessCenterManagement.Data;
 using FitnessCenterManagement.Models;
 using Microsoft.AspNetCore.Authorization;
 
+
 namespace FitnessCenterManagement.Controllers
 {
-    [Authorize] // Giriş yapan herkes görebilsin (üye randevu alacak)
+    [Authorize]
     public class AppointmentsController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -22,30 +26,106 @@ namespace FitnessCenterManagement.Controllers
         // GET: Appointments
         public async Task<IActionResult> Index()
         {
-            var list = await _context.Appointments
-                .Join(_context.Members, a => a.MemberId, m => m.Id, (a, m) => new { a, m })
-                .Join(_context.Trainers, x => x.a.TrainerId, t => t.Id, (x, t) => new { x.a, x.m, t })
-                .Join(_context.Services, x => x.a.ServiceId, s => s.Id, (x, s) => new AppointmentListVM
+            // Temel sorgu (JOIN'li)
+            var query =
+                from a in _context.Appointments
+                join m in _context.Members on a.MemberId equals m.Id
+                join t in _context.Trainers on a.TrainerId equals t.Id
+                join s in _context.Services on a.ServiceId equals s.Id
+                select new
                 {
-                    Id = x.a.Id,
-                    MemberName = x.m.FullName,
-                    TrainerName = x.t.FullName,
-                    ServiceName = s.Name,
-                    StartTime = x.a.StartTime,
-                    IsApproved = x.a.IsApproved
+                    Appointment = a,
+                    MemberName = m.FullName,
+                    TrainerName = t.FullName,
+                    ServiceName = s.Name
+                };
+
+            
+            if (!User.IsInRole("Admin"))
+            {
+                var userEmail = User.Identity?.Name;
+
+                if (string.IsNullOrWhiteSpace(userEmail))
+                    return View(new List<AppointmentListVM>());
+
+                var member = await _context.Members.FirstOrDefaultAsync(m => m.Email == userEmail);
+                if (member == null)
+                    return View(new List<AppointmentListVM>());
+
+                query = query.Where(x => x.Appointment.MemberId == member.Id);
+            }
+
+            
+            var list = await query
+                .OrderByDescending(x => x.Appointment.StartTime)
+                .Select(x => new AppointmentListVM
+                {
+                    Id = x.Appointment.Id,
+                    MemberName = x.MemberName,
+                    TrainerName = x.TrainerName,
+                    ServiceName = x.ServiceName,
+                    StartTime = x.Appointment.StartTime,
+                    IsApproved = x.Appointment.IsApproved
                 })
-                .OrderByDescending(x => x.StartTime)
                 .ToListAsync();
 
             return View(list);
         }
 
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null) return NotFound();
+
+            var appt = await _context.Appointments
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (appt == null) return NotFound();
+
+            // Admin değilse sadece kendi randevusunu görebilsin
+            if (!User.IsInRole("Admin"))
+            {
+                var userEmail = User.Identity?.Name;
+                if (string.IsNullOrWhiteSpace(userEmail)) return Forbid();
+
+                var member = await _context.Members.FirstOrDefaultAsync(m => m.Email == userEmail);
+                if (member == null) return Forbid();
+
+                if (appt.MemberId != member.Id) return Forbid();
+            }
+
+            // View, AppointmentListVM bekleyecek (birazdan Details view'ını da veriyorum)
+            var vm = await (
+                from a in _context.Appointments
+                join m in _context.Members on a.MemberId equals m.Id
+                join t in _context.Trainers on a.TrainerId equals t.Id
+                join s in _context.Services on a.ServiceId equals s.Id
+                where a.Id == id
+                select new AppointmentListVM
+                {
+                    Id = a.Id,
+                    MemberName = m.FullName,
+                    TrainerName = t.FullName,
+                    ServiceName = s.Name,
+                    StartTime = a.StartTime,
+                    IsApproved = a.IsApproved
+                }
+            ).FirstOrDefaultAsync();
+
+            if (vm == null) return NotFound();
+
+            return View(vm);
+        }
+
+
+
+
+
 
         // GET: Appointments/Create
         public IActionResult Create()
         {
-            ViewData["TrainerId"] = new SelectList(_context.Trainers, "Id", "FullName");
             ViewData["ServiceId"] = new SelectList(_context.Services, "Id", "Name");
+            ViewData["TrainerId"] = new SelectList(Enumerable.Empty<SelectListItem>());
             return View();
         }
 
@@ -54,20 +134,38 @@ namespace FitnessCenterManagement.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("TrainerId,ServiceId,StartTime")] Appointment appointment)
         {
-            // ✅ Member otomatik atanacak (ilk member)
-            var member = _context.Members.FirstOrDefault();
-            if (member == null)
+            
+            var email = User?.Identity?.Name;
+
+            if (string.IsNullOrWhiteSpace(email))
             {
-                ModelState.AddModelError("", "Member bulunamadı. Önce /Members sayfasından 1 tane member ekle.");
+                ModelState.AddModelError("", "Giriş yapan kullanıcı bulunamadı (email boş).");
 
                 ViewData["TrainerId"] = new SelectList(_context.Trainers, "Id", "FullName", appointment.TrainerId);
                 ViewData["ServiceId"] = new SelectList(_context.Services, "Id", "Name", appointment.ServiceId);
                 return View(appointment);
             }
 
+            
+            var member = _context.Members.FirstOrDefault(m => m.Email == email);
+
+            
+            if (member == null)
+            {
+                member = new Member
+                {
+                    FullName = email,
+                    Email = email
+                };
+
+                _context.Members.Add(member);
+                await _context.SaveChangesAsync();
+            }
+
             appointment.MemberId = member.Id;
 
-            // ✅ Çakışma kontrolü: aynı eğitmen, aynı saat
+
+            
             bool conflict = _context.Appointments.Any(a =>
                 a.TrainerId == appointment.TrainerId &&
                 a.StartTime == appointment.StartTime);
@@ -79,7 +177,7 @@ namespace FitnessCenterManagement.Controllers
 
             if (ModelState.IsValid)
             {
-                appointment.IsApproved = false; // admin onaylayacak
+                appointment.IsApproved = false;
                 _context.Add(appointment);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
@@ -93,7 +191,7 @@ namespace FitnessCenterManagement.Controllers
         }
 
         // GET: Appointments/Edit/5
-        [Authorize(Roles = "Admin")] // sadece admin düzenlesin
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -163,7 +261,7 @@ namespace FitnessCenterManagement.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ✅ Admin Onay
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
@@ -177,7 +275,7 @@ namespace FitnessCenterManagement.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ✅ Admin Reddet (sil)
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "Admin")]
