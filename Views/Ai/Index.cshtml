@@ -1,0 +1,76 @@
+﻿@model FitnessCenterManagement.Models.AiRequestVM
+
+@{
+    ViewData["Title"] = "AI Suggestion";
+}
+
+<h1>AI Suggestion</h1>
+<p class="text-muted">Boy, kilo ve hedef bilgilerine göre (Groq AI ile) egzersiz/diyet önerisi üretir ve kaydeder.</p>
+
+<hr />
+
+<div class="row">
+    <div class="col-md-6">
+        <form asp-action="Index" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger"></div>
+
+            <div class="mb-3">
+                <label asp-for="HeightCm" class="form-label">Boy (cm)</label>
+                <input asp-for="HeightCm" class="form-control" />
+                <span asp-validation-for="HeightCm" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="WeightKg" class="form-label">Kilo (kg)</label>
+                <input asp-for="WeightKg" class="form-control" />
+                <span asp-validation-for="WeightKg" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Goal" class="form-label">Hedef</label>
+                <select asp-for="Goal" class="form-select">
+                    <option value="Kilo Verme">Kilo Verme</option>
+                    <option value="Kas Yapma">Kas Yapma</option>
+                    <option value="Fit Kalma">Fit Kalma</option>
+                </select>
+                <span asp-validation-for="Goal" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="ExtraInfo" class="form-label">Ek Bilgi (opsiyonel)</label>
+                <input asp-for="ExtraInfo" class="form-control" placeholder="Örn: Diz ağrım var / Evde ekipman yok" />
+                <span asp-validation-for="ExtraInfo" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Öneri Oluştur</button>
+
+            
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        @if (ViewBag.Suggestion != null)
+        {
+            <div class="alert alert-success">
+                <strong>Öneri oluşturuldu ✅</strong><br />
+                @if (ViewBag.Bmi != null)
+                {
+                    <small class="text-muted">BMI: @(((double)ViewBag.Bmi).ToString("0.0"))</small>
+                }
+            </div>
+
+            <pre class="pretty">@ViewBag.Suggestion</pre>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                Formu doldurup "Öneri Oluştur" butonuna bas.
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

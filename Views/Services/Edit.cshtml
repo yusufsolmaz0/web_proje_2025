@@ -1,44 +1,73 @@
-﻿@model FitnessCenterManagement.Models.Service
+﻿@model FitnessCenterManagement.Models.ServiceEditVM
 
 @{
-    ViewData["Title"] = "Edit";
+    ViewData["Title"] = "Edit Service";
 }
 
-<h1>Edit</h1>
+<h1>Edit Service</h1>
 
-<h4>Service</h4>
 <hr />
 <div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <div class="col-md-6">
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="All" class="text-danger"></div>
+
             <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Name" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="DurationMinutes" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="DurationMinutes" class="form-label"></label>
                 <input asp-for="DurationMinutes" class="form-control" />
                 <span asp-validation-for="DurationMinutes" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <label asp-for="Price" class="control-label"></label>
+
+            <div class="mb-3">
+                <label asp-for="Price" class="form-label"></label>
                 <input asp-for="Price" class="form-control" />
                 <span asp-validation-for="Price" class="text-danger"></span>
             </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
+
+            <hr />
+
+            <h5>Bu servisi yapabilen trainerlar</h5>
+
+            @if (Model.AllTrainers == null || Model.AllTrainers.Count == 0)
+            {
+                <div class="alert alert-warning">
+                    Sistemde hiç trainer yok. Önce Trainers sayfasından trainer ekle.
+                </div>
+            }
+            else
+            {
+                <div class="mb-3">
+                    @for (int i = 0; i < Model.AllTrainers.Count; i++)
+                    {
+                        <div class="form-check">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   name="SelectedTrainerIds"
+                                   value="@Model.AllTrainers[i].Id"
+                                   @(Model.AllTrainers[i].IsSelected ? "checked" : "") />
+
+                            <label class="form-check-label">
+                                @Model.AllTrainers[i].FullName
+                            </label>
+                        </div>
+                    }
+                </div>
+            }
+
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a asp-action="Index" class="btn btn-secondary">Back</a>
         </form>
     </div>
 </div>
 
-<div>
-    <a asp-action="Index">Back to List</a>
-</div>
-
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }

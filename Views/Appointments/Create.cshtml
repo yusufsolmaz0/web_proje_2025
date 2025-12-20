@@ -26,7 +26,22 @@
 
             <div class="mb-3">
                 <label asp-for="StartTime" class="form-label"></label>
-                <input asp-for="StartTime" class="form-control" type="datetime-local" />
+                <!-- Takvim: MHRS benzeri -->
+                <div class="mb-3">
+                    <label class="form-label">Tarih Seç</label>
+                    <input id="DateOnly" type="date" class="form-control" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Saat Seç (12:00 - 18:00)</label>
+                    <select id="TimeOnly" class="form-select" disabled>
+                        <option value="">Önce trainer + tarih seç</option>
+                    </select>
+                </div>
+
+                <!-- Hidden gerçek StartTime -->
+                <input type="hidden" id="StartTime" name="StartTime" />
+
                 <span asp-validation-for="StartTime" class="text-danger"></span>
             </div>
 
@@ -40,54 +55,166 @@
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
         <script>
-            async function loadAvailableTrainers() {
-                const startTimeInput = document.getElementById("StartTime");
-                const trainerSelect = document.getElementById("TrainerId");
+            const serviceSelect = document.getElementById("ServiceId");
+            const trainerSelect = document.getElementById("TrainerId");
+            const dateInput = document.getElementById("DateOnly");
+            const timeSelect = document.getElementById("TimeOnly");
+            const startTimeHidden = document.getElementById("StartTime");
 
-                if (!startTimeInput || !trainerSelect) return;
-
-                const dateValue = startTimeInput.value; // "2025-12-20T13:00"
-                if (!dateValue) return;
-
-                const url = `/api/availabilityapi/available-trainers?date=${encodeURIComponent(dateValue)}`;
-
-                const res = await fetch(url);
-                if (!res.ok) return;
-
-                const data = await res.json();
-
-                // Select'i temizle
+            function resetTrainer() {
                 trainerSelect.innerHTML = "";
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.text = "Önce servis seç";
+                trainerSelect.appendChild(opt);
+                trainerSelect.disabled = true;
+            }
 
-                // Eğer hiç trainer yoksa
-                if (!data || data.length === 0) {
+            function resetTimes(msg) {
+                timeSelect.innerHTML = "";
+                const opt = document.createElement("option");
+                opt.value = "";
+                opt.text = msg || "Önce trainer + tarih seç";
+                timeSelect.appendChild(opt);
+                timeSelect.disabled = true;
+                startTimeHidden.value = "";
+            }
+
+            async function loadTrainersForServiceAndDate() {
+                const serviceId = serviceSelect.value;
+
+                resetTimes("Önce trainer + tarih seç");
+
+                trainerSelect.innerHTML = "";
+                if (!serviceId) {
+                    resetTrainer();
+                    return;
+                }
+
+                trainerSelect.disabled = false;
+
+                // Trainer listesini servis seçimine göre getiriyoruz.
+                // Şimdilik tarih şartı yoksa da olur; ama senin sistemin date istiyor diye date paramı gönderelim:
+                // date yoksa bugünün tarihi gönderelim
+                const dateValue = dateInput.value ? `${dateInput.value}T12:00` : new Date().toISOString();
+
+                const url = `/api/availabilityapi/available-trainers-for-service?serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateValue)}`;
+                const res = await fetch(url);
+
+                if (!res.ok) {
                     const opt = document.createElement("option");
                     opt.value = "";
-                    opt.text = "Bu saatte müsait trainer yok";
+                    opt.text = "Trainer listesi alınamadı";
                     trainerSelect.appendChild(opt);
                     return;
                 }
 
-                // Yeni optionları ekle
+                const data = await res.json();
+
+                const defaultOpt = document.createElement("option");
+                defaultOpt.value = "";
+                defaultOpt.text = "Trainer seç";
+                trainerSelect.appendChild(defaultOpt);
+
+                if (!data || data.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.text = "Bu servisi yapan trainer yok";
+                    trainerSelect.appendChild(opt);
+                    return;
+                }
+
                 for (const t of data) {
                     const opt = document.createElement("option");
                     opt.value = t.id;
-                    opt.text = `${t.fullName} (${t.specialty})`;
+                    opt.text = t.fullName;
                     trainerSelect.appendChild(opt);
                 }
             }
 
-            // Tarih değişince API çağır
-            document.addEventListener("DOMContentLoaded", function () {
-                const startTimeInput = document.getElementById("StartTime");
-                if (startTimeInput) {
-                    startTimeInput.addEventListener("change", loadAvailableTrainers);
+            async function loadAvailableTimes() {
+                const trainerId = trainerSelect.value;
+                const serviceId = serviceSelect.value;
+                const dateValue = dateInput.value; // YYYY-MM-DD
+
+                resetTimes("Saatler yükleniyor...");
+
+                if (!serviceId) {
+                    resetTimes("Önce servis seç");
+                    return;
+                }
+                if (!trainerId) {
+                    resetTimes("Önce trainer seç");
+                    return;
+                }
+                if (!dateValue) {
+                    resetTimes("Önce tarih seç");
+                    return;
                 }
 
-                // Sayfa açılınca da bir kere dene
-                loadAvailableTrainers();
+                const url = `/api/availabilityapi/available-times?trainerId=${encodeURIComponent(trainerId)}&serviceId=${encodeURIComponent(serviceId)}&date=${encodeURIComponent(dateValue)}`;
+                const res = await fetch(url);
+
+                if (!res.ok) {
+                    resetTimes("Saatler alınamadı");
+                    return;
+                }
+
+                const times = await res.json();
+
+                timeSelect.innerHTML = "";
+                if (!times || times.length === 0) {
+                    resetTimes("Bu trainer bu gün müsait değil");
+                    return;
+                }
+
+                const first = document.createElement("option");
+                first.value = "";
+                first.text = "Saat seç";
+                timeSelect.appendChild(first);
+
+                for (const t of times) {
+                    const opt = document.createElement("option");
+                    opt.value = t; // "HH:mm"
+                    opt.text = t;
+                    timeSelect.appendChild(opt);
+                }
+
+                timeSelect.disabled = false;
+            }
+
+            function updateHiddenStartTime() {
+                const dateValue = dateInput.value; // YYYY-MM-DD
+                const timeValue = timeSelect.value; // HH:mm
+
+                if (!dateValue || !timeValue) {
+                    startTimeHidden.value = "";
+                    return;
+                }
+
+                // Hidden StartTime format: YYYY-MM-DDTHH:mm
+                startTimeHidden.value = `${dateValue}T${timeValue}`;
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                resetTrainer();
+                resetTimes("Önce servis seç");
+
+                // servis seçilince trainer listesi
+                serviceSelect.addEventListener("change", loadTrainersForServiceAndDate);
+
+                // trainer veya tarih değişince saatleri getir
+                trainerSelect.addEventListener("change", loadAvailableTimes);
+                dateInput.addEventListener("change", loadAvailableTimes);
+
+                // saat seçilince hidden StartTime oluşsun
+                timeSelect.addEventListener("change", updateHiddenStartTime);
+
+                // sayfa açılınca (istersen)
+                loadTrainersForServiceAndDate();
             });
         </script>
+
 
     }
 }

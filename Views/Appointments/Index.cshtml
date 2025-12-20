@@ -1,63 +1,100 @@
 ﻿@model IEnumerable<FitnessCenterManagement.Models.AppointmentListVM>
-
 @{
     ViewData["Title"] = "Appointments";
 }
 
-<h1>Appointments</h1>
+<div class="d-flex align-items-center justify-content-between mb-3">
+    <div>
+        <h1 class="page-title mb-1">Appointments</h1>
+        <div class="muted">Randevularını buradan takip edebilirsin.</div>
+    </div>
 
-<p>
-    <a asp-action="Create" class="btn btn-success">Create New</a>
-</p>
+    <a class="btn btn-primary" asp-action="Create">
+        + New Appointment
+    </a>
+</div>
 
-<table class="table table-bordered table-striped">
-    <thead>
-        <tr>
-            <th>Id</th>
-            <th>Member</th>
-            <th>Trainer</th>
-            <th>Service</th>
-            <th>Start Time</th>
-            <th>Approved</th>
-            <th style="width:260px;">Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.Id</td>
-                <td>@item.MemberName</td>
-                <td>@item.TrainerName</td>
-                <td>@item.ServiceName</td>
-                <td>@item.StartTime</td>
-                <td>@(item.IsApproved ? "Yes" : "No")</td>
-                <td>
-                    @if (User.IsInRole("Admin"))
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <strong>Randevu Listesi</strong>
+        <span class="muted">@Model.Count() kayıt</span>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Member</th>
+                        <th>Trainer</th>
+                        <th>Service</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
                     {
-                        <form asp-action="Approve" method="post" style="display:inline;">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button type="submit" class="btn btn-sm btn-primary" @(item.IsApproved ? "disabled" : "")>
-                                Approve
-                            </button>
-                        </form>
+                        <tr>
+                            <td>@item.MemberName</td>
+                            <td>@item.TrainerName</td>
+                            <td>@item.ServiceName</td>
+                            <td>@item.StartTime.ToString("dd.MM.yyyy HH:mm")</td>
+                            <td>
+                                @if (item.IsApproved)
+                                {
+                                    <span class="badge-soft badge-soft-success">Approved</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-soft badge-soft-warning">Pending</span>
+                                }
+                            </td>
 
-                        <form asp-action="Reject" method="post" style="display:inline;">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="id" value="@item.Id" />
-                            <button type="submit" class="btn btn-sm btn-danger">Reject</button>
-                        </form>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Details" asp-route-id="@item.Id">Details</a>
 
-                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-warning">Edit</a>
-                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-secondary">Delete</a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+
+                                    <a class="btn btn-sm btn-outline-danger"
+                                       asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+
+                                    @* Admin Onay/Reddet *@
+                                    @if (!item.IsApproved)
+                                    {
+                                        <form asp-action="Approve" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-success">Approve</button>
+                                        </form>
+
+                                        <form asp-action="Reject" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@item.Id" />
+                                            <button type="submit" class="btn btn-sm btn-danger">Reject</button>
+                                        </form>
+                                    }
+                                }
+                            </td>
+                        </tr>
                     }
-                    else
+
+                    @if (!Model.Any())
                     {
-                        <span class="text-muted">Only admin can approve/reject</span>
+                        <tr>
+                            <td colspan="6" class="text-center p-4 muted">
+                                Henüz randevu yok.
+                            </td>
+                        </tr>
                     }
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

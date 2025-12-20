@@ -1,0 +1,27 @@
+﻿@model IEnumerable<FitnessCenterManagement.Models.ExerciseSuggestion>
+
+@{
+    ViewData["Title"] = "AI Suggestion History";
+}
+
+<h1>AI Suggestion History</h1>
+
+<table class="table table-bordered table-striped">
+    <thead>
+        <tr>
+            <th>CreatedAt</th>
+            <th>Prompt</th>
+            <th>Response</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.CreatedAt</td>
+                <td style="max-width:300px; white-space:pre-wrap;">@item.Prompt</td>
+                <td style="max-width:500px; white-space:pre-wrap;">@item.Response</td>
+            </tr>
+        }
+    </tbody>
+</table>

@@ -10,62 +10,68 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">FitnessCenterManagement</a>
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                    FitnessCenterManagement
+                </a>
 
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
-                        aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link" asp-controller="Home" asp-action="Index">Home</a>
+                        </li>
+                        @if (User.IsInRole("Admin"))
+                            {
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Gyms" asp-action="Index">Gyms</a>
+                        </li>
+                            }
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Trainers" asp-action="Index">Trainers</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" asp-controller="Services" asp-action="Index">Services</a>
                         </li>
 
-                        @*  *@
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Gyms" asp-action="Index">Gyms</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Trainers" asp-action="Index">Trainers</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Services" asp-action="Index">Services</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Members" asp-action="Index">Members</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Appointments" asp-action="Index">Appointments</a>
-                            </li>
-                        }
-
-                        @*  *@
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <li class="nav-item">
-                                <a class="nav-link text-dark" asp-controller="Ai" asp-action="Index">AI Suggestion</a>
+                                <a class="nav-link" asp-controller="Appointments" asp-action="Index">Appointments</a>
                             </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" asp-controller="Ai" asp-action="Index">AI Suggestion</a>
+                            </li>
+
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" asp-controller="Members" asp-action="Index">Members</a>
+                                </li>
+                            }
                         }
                     </ul>
 
-                    <partial name="_LoginPartial" />
+                    <div class="d-flex align-items-center">
+                        <partial name="_LoginPartial" />
+                    </div>
                 </div>
             </div>
         </nav>
     </header>
 
-    <div class="container">
+
+    <div class="container py-4">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
     </div>
+
 
     <footer class="border-top footer text-muted">
         <div class="container">

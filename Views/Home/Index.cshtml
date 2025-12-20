@@ -1,5 +1,114 @@
-﻿@*
-    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-*@
-@{
+﻿@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="mb-5">
+    <h1 class="page-title mb-2">Fitness Center Management</h1>
+    <p class="text-muted fs-5">
+        Spor salonu yönetimi, randevu planlama ve yapay zekâ destekli öneriler tek bir platformda.
+    </p>
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">🏋️ Trainers</h5>
+                <p class="card-text muted">
+                    Eğitmenleri ve verdikleri hizmetleri görüntüle.
+                </p>
+                <a asp-controller="Trainers" asp-action="Index" class="btn btn-outline-primary w-100">
+                    Trainers
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">🧾 Services</h5>
+                <p class="card-text muted">
+                    Sunulan spor ve antrenman hizmetlerini incele.
+                </p>
+                <a asp-controller="Services" asp-action="Index" class="btn btn-outline-primary w-100">
+                    Services
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">📅 Appointments</h5>
+                <p class="card-text muted">
+                    Randevu al, mevcut randevularını takip et.
+                </p>
+                <a asp-controller="Appointments" asp-action="Index" class="btn btn-outline-primary w-100">
+                    Appointments
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card h-100">
+            <div class="card-body">
+                <h5 class="card-title">🤖 AI Suggestions</h5>
+                <p class="card-text muted">
+                    Yapay zekâ ile kişisel egzersiz ve diyet önerisi al.
+                </p>
+                <a asp-controller="Ai" asp-action="Index" class="btn btn-outline-primary w-100">
+                    AI Suggestion
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (User.Identity != null && User.Identity.IsAuthenticated)
+{
+    <div class="card mb-4">
+        <div class="card-body">
+            <h4 class="mb-2">👋 Hoş geldin, @User.Identity.Name</h4>
+            <p class="muted mb-3">
+                Hesabınla randevu alabilir, eğitmenleri inceleyebilir ve AI destekli öneriler alabilirsin.
+            </p>
+
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Appointments" asp-action="Create" class="btn btn-primary">
+                    + Yeni Randevu Al
+                </a>
+
+                <a asp-controller="Ai" asp-action="Index" class="btn btn-outline-secondary">
+                    AI Öneri Al
+                </a>
+
+                @if (User.IsInRole("Admin"))
+                {
+                    <a asp-controller="Members" asp-action="Index" class="btn btn-outline-danger">
+                        Admin Paneli (Members)
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="card-body text-center">
+            <h4 class="mb-2">🔐 Giriş Yap</h4>
+            <p class="muted mb-3">
+                Randevu alabilmek ve AI önerileri görmek için giriş yapmalısın.
+            </p>
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary me-2">
+                Login
+            </a>
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-secondary">
+                Register
+            </a>
+        </div>
+    </div>
 }

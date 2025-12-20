@@ -1,41 +1,70 @@
 ﻿@model IEnumerable<FitnessCenterManagement.Models.Member>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Members";
 }
 
-<h1>Index</h1>
+<div class="toolbar">
+    <div>
+        <h1 class="page-title mb-1">Members</h1>
+        <div class="muted">Sistemde kayıtlı üyeleri buradan görüntüleyebilirsin.</div>
+    </div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.FullName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.FullName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
-}
-    </tbody>
-</table>
+    @if (User.IsInRole("Admin"))
+    {
+        <a class="btn btn-primary" asp-action="Create">+ Create Member</a>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <strong>Member Listesi</strong>
+        <span class="muted">@Model.Count() kayıt</span>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th>Full Name</th>
+                        <th>Email</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@item.FullName</td>
+                            <td class="muted">@item.Email</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   asp-action="Details" asp-route-id="@item.Id">Details</a>
+
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a class="btn btn-sm btn-outline-primary"
+                                       asp-action="Edit" asp-route-id="@item.Id">Edit</a>
+
+                                    <a class="btn btn-sm btn-outline-danger"
+                                       asp-action="Delete" asp-route-id="@item.Id">Delete</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="3" class="text-center p-4 muted">
+                                Henüz üye yok.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
