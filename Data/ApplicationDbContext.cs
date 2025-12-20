@@ -13,10 +13,20 @@ namespace FitnessCenterManagement.Data
 
         public DbSet<Gym> Gyms { get; set; }
         public DbSet<Trainer> Trainers { get; set; }
-        public DbSet<Appointment> Appointments { get; set; }
-        public DbSet<Member> Members { get; set; }
         public DbSet<Service> Services { get; set; }
-        public DbSet<TrainerAvailability> TrainerAvailabilities { get; set; }
+        public DbSet<Member> Members { get; set; }
+        public DbSet<Appointment> Appointments { get; set; }
         public DbSet<ExerciseSuggestion> ExerciseSuggestions { get; set; }
+
+        protected override void OnModelCreating(ModelBuilder builder)
+        {
+            base.OnModelCreating(builder);
+
+            
+            builder.Entity<Trainer>()
+                .HasMany(t => t.Services)
+                .WithMany(s => s.Trainers)
+                .UsingEntity(j => j.ToTable("TrainerServices"));
+        }
     }
 }
